@@ -5,22 +5,33 @@ Module.register("MMM-withings",{
     displayWeightGraph: true,
     graphWidth: 400,
     initialLoadDelay: 0, // 0 seconds delay
-    updateInterval: 5 * 60 * 1000 // every 5 minutes
+    updateInterval: 5 * 60 * 1000, // every 5 minutes
+    daysOfHistory: 14 // Show history of 2 weeks of weight
   },
 
   start: function () {
     Log.info("Starting module: " + this.name);
 
+    this.userName = 'Magic Mirror';
+
     this.scheduleUpdate(this.config.initialLoadDelay);
+  },
+
+  getScripts: function () {
+    return ["Chart.bundle.min.js"]
   },
 
   getDom: function() {
     var wrapper = document.createElement("div");
 
     var summary = document.createElement("div");
-    summary.innerHTML = "Hello World from Withings";
+    summary.innerHTML = "Health Data For " + this.userName;
     summary.className = "dimmed light small";
     wrapper.appendChild(summary);
+
+    if (this.config.displayWeightGraph) {
+      wrapper.appendChild(this.renderWeightGraph());
+    }
 
     return wrapper;
   },
@@ -38,36 +49,37 @@ Module.register("MMM-withings",{
     element.className = "weight-graph";
     element.width  = width;
     element.height = height;
-    var context = element.getContext('2d');
+    var ctx = element.getContext('2d');
 
-    var sixth = Math.round(width / 6);
-    context.save();
-    context.strokeStyle = 'gray';
-    context.lineWidth = 2;
-    for (i = 1; i < 6; i++) {
-      context.moveTo(i * sixth, height);
-      context.lineTo(i * sixth, height - 10);
-      context.stroke();
-    }
-    context.restore();
-
-    var third = Math.round(height / 3);
-    context.save();
-    context.strokeStyle = 'gray';
-    context.setLineDash([5, 15]);
-    context.lineWidth = 1;
-    for (i = 1; i < 3; i++) {
-      context.moveTo(0, i * third);
-      context.lineTo(width, i * third);
-      context.stroke();
-    }
-    context.restore();
-
-    context.lineTo(width, height);
-    context.closePath();
-    context.fill();
-    context.restore();
-
+    var myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: this.weightData.dates,
+        datasets: [{
+          data: this.weightData.weights,
+          borderColor:'white',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        legend: {
+          display: false
+        },
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: false
+            }
+          }],
+          xAxes: [{
+            type: 'time',
+            time: {
+              unit: 'day'
+            }
+          }]
+        }
+      }
+    });
     return element;
   },
 
@@ -87,6 +99,14 @@ Module.register("MMM-withings",{
     self = this;
     if (notification === "WEIGHT_DATA_UPDATE") {
       Log.info("Received Data ", payload);
+      self.weightData = {
+        'weights': [],
+        'dates': []
+      };
+      payload.forEach(function(meas) {
+        self.weightData.weights.push(meas.weight);
+        self.weightData.dates.push(meas.date);
+      });
       this.updateDom();
     }
   },
@@ -94,7 +114,10 @@ Module.register("MMM-withings",{
   update: function () {
     var self = this;
     Log.info("Update Called");
-    this.sendSocketNotification("UPDATE_DATA", null);
+    var updateRequest = {
+      'daysOfHistory': self.config.daysOfHistory
+    }
+    this.sendSocketNotification("UPDATE_DATA", updateRequest);
     self.scheduleUpdate();
   },
 });

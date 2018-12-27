@@ -5,7 +5,7 @@ const Https = require('https');
 const Querystring = require('querystring');
 const filename = "/tokens.json";
 var configFilename = path.resolve(__dirname + filename);
-const GRAMS_TO_POUNDS = 0.0022046;
+const KG_TO_POUNDS = 2.2046;
 
 module.exports = NodeHelper.create({
   start: function () {
@@ -33,12 +33,12 @@ module.exports = NodeHelper.create({
     });
   },
 
-  getWeightData: function () {
+  getWeightData: function (updateRequest) {
     var self = this;
-    console.info("Fetching Weight...");
+    console.info("Fetching Weight for the past " + updateRequest.daysOfHistory + " days");
     var date = new Date();
     // TODO: Replace with variable offset
-    date.setDate(date.getDate() - 7);
+    date.setDate(date.getDate() - updateRequest.daysOfHistory);
     var updateTimestamp = Math.floor(date.getTime() / 1000);
     var options = {
       hostname: self.measurementApi,
@@ -64,7 +64,12 @@ module.exports = NodeHelper.create({
             var measurements = reply.body.measuregrps;
             var weightDataLb = [];
             measurements.forEach(function (meas){
-              weightDataLb.push(meas.measures[0].value * GRAMS_TO_POUNDS);
+              var date = new Date(meas.date * 1000);
+
+              weightDataLb.push({
+                'weight': meas.measures[0].value * Math.pow(10, meas.measures[0].unit) * KG_TO_POUNDS,
+                'date': date
+              });
             });
             // send Data To Display Module
             this.sendSocketNotification("WEIGHT_DATA_UPDATE", weightDataLb);
@@ -91,7 +96,7 @@ module.exports = NodeHelper.create({
 
     if (notification === "UPDATE_DATA") {
       console.info("UPDATE_DATA Received");
-      self.getWeightData();
+      self.getWeightData(payload);
     };
   },
 
