@@ -20,10 +20,12 @@ Module.register("MMM-withings",{
 
     return wrapper;
   },
+
   processData: function () {
     var self = this;
     self.scheduleUpdate();
   },
+
   renderWeightGraph: function () {
     var i;
     var width = this.config.graphWidth;
@@ -64,6 +66,7 @@ Module.register("MMM-withings",{
 
     return element;
   },
+
   scheduleUpdate: function(delay) {
     var nextLoad = this.config.updateInterval;
     if (typeof delay !== "undefined" && delay >= 0) {
@@ -75,9 +78,25 @@ Module.register("MMM-withings",{
       self.update();
     }, nextLoad);
   },
+
+  socketNotificationReceived: function (notification, payload) {
+    self = this;
+    if (notification === "WEIGHT_DATA_UPDATE") {
+      Log.info("Received Data ", payload);
+      this.updateDom();
+    }
+  },
+
+  start: function () {
+    Log.info("Starting module: " + this.name);
+
+    this.scheduleUpdate(0);
+  },
+
   update: function () {
     var self = this;
-    Log.info("update called");
-    self.processData();
+    Log.info("Update Called");
+    this.sendSocketNotification("UPDATE_DATA", null);
+    self.scheduleUpdate();
   },
 });

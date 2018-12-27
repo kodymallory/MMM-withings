@@ -5,6 +5,7 @@ const Https = require('https');
 const Querystring = require('querystring');
 const filename = "/tokens.json";
 var configFilename = path.resolve(__dirname + filename);
+const GRAMS_TO_POUNDS = 0.0022046;
 
 module.exports = NodeHelper.create({
   start: function () {
@@ -14,8 +15,8 @@ module.exports = NodeHelper.create({
     self.clientId = 'd8973ddc0d93a3b646724a04adddca246ef5c0a9018f963724125bd4747a972a';
     self.clientSecret = '56b1d32e8ae199aabcda5fece5b982e89a8a6472f46ce035d230cfd28ba564d4';
     self.baseApi = 'account.health.nokia.com';
+    self.measurementApi = 'wbsapi.withings.net';
     self.tokenPath = '/oauth2/token';
-    self.tokenApi = self.baseApi + self.tokenPath;
     self.authorizationUri = self.baseApi + '/oauth2_user/authorize2';
     self.redirectUri = 'http://kodymallory.epizy.com';
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
@@ -29,8 +30,69 @@ module.exports = NodeHelper.create({
 
       console.info("Access Token "+self.access_token);
       console.info("Refresh Token "+self.refresh_token);
-      self.refresh();
     });
+  },
+
+  getWeightData: function () {
+    var self = this;
+    console.info("Fetching Weight...");
+    var date = new Date();
+    // TODO: Replace with variable offset
+    date.setDate(date.getDate() - 7);
+    var updateTimestamp = Math.floor(date.getTime() / 1000);
+    var options = {
+      hostname: self.measurementApi,
+      path: '/measure?' + Querystring.stringify({
+        'action':'getmeas',
+        'access_token': self.access_token,
+        'meastype': '1',
+        'category': '1',
+        'lastupdate': updateTimestamp
+      }),
+      method: 'GET'
+    };
+    var request = Https.request(options, function (response) {
+      var data = '';
+      response.on('data', function (chunk) {
+        data += chunk;
+      });
+      response.on('end', function () {
+        var reply = JSON.parse(data);
+        switch (reply.status) {
+          case 0:
+            console.info("Got Data Back");
+            var measurements = reply.body.measuregrps;
+            var weightDataLb = [];
+            measurements.forEach(function (meas){
+              weightDataLb.push(meas.measures[0].value * GRAMS_TO_POUNDS);
+            });
+            // send Data To Display Module
+            this.sendSocketNotification("WEIGHT_DATA_UPDATE", weightDataLb);
+            break;
+          case 401:
+            console.info("Token Expired");
+            self.refresh();
+            break;
+          default:
+            console.error("Something Went Wrong ", reply);
+            break;
+        }
+      }.bind(self));
+    }.bind(self));
+    request.on('error', function (error) {
+      console.error("An error occured", error);
+      setTimeout(self.update.bind(self), 1000);
+    }.bind(self));
+    request.end();
+  },
+
+  socketNotificationReceived: function (notification, payload) {
+    var self = this;
+
+    if (notification === "UPDATE_DATA") {
+      console.info("UPDATE_DATA Received");
+      self.getWeightData();
+    };
   },
 
   refresh: function () {
@@ -53,15 +115,15 @@ module.exports = NodeHelper.create({
         switch (reply['error'] || null) {
           case null:
             console.info("#### Tokens");
-            access_token = reply['access_token'];
-            refresh_token = reply['refresh_token'];
-            this.updateTokenFile(access_token, refresh_token);
+            self.access_token = reply['access_token'];
+            self.refresh_token = reply['refresh_token'];
+            this.updateTokenFile(self.access_token, self.refresh_token);
             break;
           default:
-            //Refreshing error, so we need a new PIN authorization
+            //Refreshing error
             console.info(reply['error_description'] + " Re-requesting authorization!");
-            access_token = null;
-            refresh_token = null;
+            self.access_token = null;
+            self.refresh_token = null;
             break;
         }
       }.bind(self));
@@ -74,6 +136,7 @@ module.exports = NodeHelper.create({
       'client_secret': self.clientSecret,
       'redirect_uri': self.redirectUri
     }));
+
     request.on('error', function (error) {
       console.error(error + " Re-requesting authorization! - AGAIN !!");
     }.bind(self));
