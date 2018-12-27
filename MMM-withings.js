@@ -2,12 +2,16 @@ Module.register("MMM-withings",{
 
   // Default module config.
   defaults: {
-    text: "Hello World!",
-    apiKey: "",
-    showWeightGraph: true,
+    displayWeightGraph: true,
     graphWidth: 400,
     initialLoadDelay: 0, // 0 seconds delay
     updateInterval: 5 * 60 * 1000 // every 5 minutes
+  },
+
+  start: function () {
+    Log.info("Starting module: " + this.name);
+
+    this.scheduleUpdate(this.config.initialLoadDelay);
   },
 
   getDom: function() {
@@ -85,12 +89,6 @@ Module.register("MMM-withings",{
       Log.info("Received Data ", payload);
       this.updateDom();
     }
-  },
-
-  start: function () {
-    Log.info("Starting module: " + this.name);
-
-    this.scheduleUpdate(0);
   },
 
   update: function () {
