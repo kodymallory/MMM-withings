@@ -3,7 +3,6 @@ Module.register("MMM-withings",{
   // Default module config.
   defaults: {
     displayWeightGraph: true,
-    graphWidth: 400,
     initialLoadDelay: 0, // 0 seconds delay
     updateInterval: 5 * 60 * 1000, // every 5 minutes
     daysOfHistory: 14 // Show history of 2 weeks of weight
@@ -42,13 +41,8 @@ Module.register("MMM-withings",{
   },
 
   renderWeightGraph: function () {
-    var i;
-    var width = this.config.graphWidth;
-    var height = Math.round(width * 0.3);
     var element = document.createElement('canvas');
     element.className = "weight-graph";
-    element.width  = width;
-    element.height = height;
     var ctx = element.getContext('2d');
 
     var myChart = new Chart(ctx, {
@@ -98,7 +92,6 @@ Module.register("MMM-withings",{
   socketNotificationReceived: function (notification, payload) {
     self = this;
     if (notification === "WEIGHT_DATA_UPDATE") {
-      Log.info("Received Data ", payload);
       self.weightData = {
         'weights': [],
         'dates': []
@@ -113,7 +106,6 @@ Module.register("MMM-withings",{
 
   update: function () {
     var self = this;
-    Log.info("Update Called");
     var updateRequest = {
       'daysOfHistory': self.config.daysOfHistory
     }
