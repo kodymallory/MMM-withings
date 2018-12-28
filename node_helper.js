@@ -5,7 +5,101 @@ const Https = require('https');
 const Querystring = require('querystring');
 const filename = "/tokens.json";
 var configFilename = path.resolve(__dirname + filename);
-const KG_TO_POUNDS = 2.2046;
+const KG_TO_LBS = 2.2046;
+
+const metricToImperialMap = {
+  'kg': 'lbs',
+  'celcius': 'farenheight',
+  'percent': 'percent',
+  'meter': 'inches',
+  'mmHg': 'mmHg',
+  'm/s': 'm/s'
+}
+const measTypeMap = {
+  '1':'weight',
+  '4':'height',
+  '5':'fatFreeMass',
+  '6':'fatRatio',
+  '8':'fatMassWeight',
+  '9':'diastolicBloodPressure',
+  '10':'systolicBloodPressure',
+  '11':'heartPulse',
+  '12':'temperature',
+  '54':'sp02',
+  '71':'bodyTemperature',
+  '73':'skinTemperature',
+  '76':'muscleMass',
+  '77':'hydration',
+  '88':'boneMass',
+  '91':'pulseWaveVelocity'
+};
+
+const measInfo = {
+  'weight': {
+    'index': '1',
+    'si_unit':'kg'
+  },
+  'height': {
+    'index': '4',
+    'si_unit':'meter'
+  },
+  'fatFreeMass': {
+    'index': '5',
+    'si_unit': 'kg'
+  },
+  'fatRatio': {
+    'index': '6',
+    'si_unit': 'percent'
+  },
+  'fatMassWeight': {
+    'index': '8',
+    'si_unit': 'kg'
+  },
+  'diastolicBloodPressure': {
+    'index': '9',
+    'si_unit': 'mmHg'
+  },
+  'systolicBloodPressure': {
+    'index': '10',
+    'si_unit': 'mmHg'
+  },
+  'heartPulse': {
+    'index': '11',
+    'si_unit': 'bpm'
+  },
+  'temperature': {
+    'index': '12',
+    'si_unit': 'celcius'
+  },
+  'sp02': {
+    'index': 'percent',
+    'si_unit': 'celcius'
+  },
+  'bodyTemperature': {
+    'index': '71',
+    'si_unit': 'celcius'
+  },
+  'skinTemperature': {
+    'index': '73',
+    'si_unit': 'celcius'
+  },
+  'muscleMass': {
+    'index': '76',
+    'si_unit': 'kg'
+  },
+  'hydration': {
+    'index': '77',
+    'si_unit': 'percent'
+  },
+  'boneMass': {
+    'index': '88',
+    'si_unit': 'kg'
+  },
+  'pulseWaveVelocity': {
+    'index': '91',
+    'si_unit': 'm/s'
+  }
+};
 
 module.exports = NodeHelper.create({
   start: function () {
@@ -19,6 +113,23 @@ module.exports = NodeHelper.create({
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
 
     console.info("**** Setting the tokens from File: " + configFilename);
+  },
+
+  convertData: function (meas) {
+    var self = this;
+    var value = meas.value * Math.pow(10, meas.unit);
+    if (self.units == 'imperial')
+    {
+      switch(measInfo[measTypeMap[meas.type]].si_unit) {
+        case 'kg':
+          value *= KG_TO_LBS;
+          break;
+        case 'percent':
+        default:
+          break;
+      }
+    }
+    return value;
   },
 
   getAccessToken: function (code) {
@@ -71,8 +182,10 @@ module.exports = NodeHelper.create({
     request.end();
   },
 
-  getWeightData: function (updateRequest) {
+  getMeasurement: function (updateRequest) {
     var self = this;
+    var measTypes = updateRequest.measTypes;
+
     console.info("Fetching Weight for the past " + updateRequest.daysOfHistory + " days");
     var date = new Date();
     // TODO: Replace with variable offset
@@ -83,12 +196,13 @@ module.exports = NodeHelper.create({
       path: '/measure?' + Querystring.stringify({
         'action':'getmeas',
         'access_token': self.access_token,
-        'meastype': '1',
+        'meastype': measTypes.map(function (type) { return measInfo[type].index}),
         'category': '1',
         'lastupdate': updateTimestamp
       }),
       method: 'GET'
     };
+
     var request = Https.request(options, function (response) {
       var data = '';
       response.on('data', function (chunk) {
@@ -100,17 +214,20 @@ module.exports = NodeHelper.create({
           case 0:
             console.info("Got Data Back");
             var measurements = reply.body.measuregrps;
-            var weightDataLb = [];
-            measurements.forEach(function (meas){
-              var date = new Date(meas.date * 1000);
-
-              weightDataLb.push({
-                'weight': meas.measures[0].value * Math.pow(10, meas.measures[0].unit) * KG_TO_POUNDS,
-                'date': date
+            var measurementData = [];
+            measurements.forEach(function (measure){
+              var date = new Date(measure.date * 1000);
+              measure.measures.forEach(function (meas) {
+                measurementData.push({
+                  'type': measTypeMap[meas.type],
+                  'measurement': self.convertData(meas),
+                  'date': date,
+                  'unit': metricToImperialMap[measInfo[measTypeMap[meas.type]].si_unit]
+                });
               });
             });
             // send Data To Display Module
-            this.sendSocketNotification("WEIGHT_DATA_UPDATE", weightDataLb);
+            this.sendSocketNotification("DATA_UPDATE", measurementData);
             break;
           case 401:
             console.info("Token Expired");
@@ -137,6 +254,7 @@ module.exports = NodeHelper.create({
       self.clientId = config.clientId;
       self.clientSecret = config.clientSecret;
       self.redirectUri = config.redirectUri;
+      self.units = config.units;
     }
 
     fs.readFile(configFilename, function read(err, data) {
@@ -166,7 +284,7 @@ module.exports = NodeHelper.create({
         self.initializeApi(payload);
         break;
       case "UPDATE_DATA":
-        self.getWeightData(payload);
+        self.getMeasurement(payload);
         break;
       default:
         console.error("Unhandled Notification ", notification);

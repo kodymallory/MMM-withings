@@ -2,16 +2,22 @@ Module.register("MMM-withings",{
 
   // Default module config.
   defaults: {
-    displayWeightGraph: true,
+    units: config.units,
+    userName: 'MagicMirror',
+    clientId: '',
+    clientSecret: '',
+    redirectUri: '',
     initialLoadDelay: 0, // 0 seconds delay
     updateInterval: 5 * 60 * 1000, // every 5 minutes
-    daysOfHistory: 14 // Show history of 2 weeks of weight
+    daysOfHistory: 14, // Show history of 2 weeks of weight
+    measurements: ['weight'] // Display weight by default
   },
 
   start: function () {
     Log.info("Starting module: " + this.name);
 
     this.userName = 'Magic Mirror';
+    this.measurementData = {};
 
     this.sendSocketNotification("INITIALIZE_API", this.config);
   },
@@ -21,16 +27,19 @@ Module.register("MMM-withings",{
   },
 
   getDom: function() {
+    var self = this;
     var wrapper = document.createElement("div");
 
     var summary = document.createElement("div");
-    summary.innerHTML = "Health Data For " + this.userName;
+    summary.innerHTML = "Health Data For " + this.config.userName;
     summary.className = "dimmed light small";
     wrapper.appendChild(summary);
 
-    if (this.config.displayWeightGraph) {
-      wrapper.appendChild(this.renderWeightGraph());
-    }
+    self.config.measurements.forEach(function (meas) {
+      if (typeof self.measurementData[meas] != 'undefined') {
+        wrapper.appendChild(self.renderMeasurementGraph(meas));
+      }
+    });
 
     return wrapper;
   },
@@ -40,17 +49,17 @@ Module.register("MMM-withings",{
     self.scheduleUpdate();
   },
 
-  renderWeightGraph: function () {
+  renderMeasurementGraph: function (measType) {
     var element = document.createElement('canvas');
-    element.className = "weight-graph";
+    element.className = measType + "-graph";
     var ctx = element.getContext('2d');
 
     var myChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: this.weightData.dates,
+        labels: this.measurementData[measType].dates,
         datasets: [{
-          data: this.weightData.weights,
+          data: this.measurementData[measType].data,
           borderColor:'white',
           borderWidth: 1
         }]
@@ -61,6 +70,10 @@ Module.register("MMM-withings",{
         },
         scales: {
           yAxes: [{
+            scaleLabel: {
+              display: true,
+              labelString: measType + ' (' + this.measurementData[measType].unit + ')'
+            },
             ticks: {
               beginAtZero: false
             }
@@ -92,14 +105,20 @@ Module.register("MMM-withings",{
   socketNotificationReceived: function (notification, payload) {
     self = this;
     switch(notification) {
-      case "WEIGHT_DATA_UPDATE":
-        self.weightData = {
-          'weights': [],
-          'dates': []
-        };
+      case "DATA_UPDATE":
+        Log.info(payload);
+        self.measurementData = {};
         payload.forEach(function (meas) {
-          self.weightData.weights.push(meas.weight);
-          self.weightData.dates.push(meas.date);
+          if (typeof self.measurementData[meas.type] == "undefined") {
+            self.measurementData[meas.type] = {
+              'data': [],
+              'dates': [],
+              'unit': ''
+            }
+          }
+          self.measurementData[meas.type].data.push(meas.measurement);
+          self.measurementData[meas.type].dates.push(meas.date);
+          self.measurementData[meas.type].unit = meas.unit;
         });
         this.updateDom();
         break;
@@ -114,7 +133,8 @@ Module.register("MMM-withings",{
   update: function () {
     var self = this;
     var updateRequest = {
-      'daysOfHistory': self.config.daysOfHistory
+      'daysOfHistory': self.config.daysOfHistory,
+      'measTypes': self.config.measurements
     }
     this.sendSocketNotification("UPDATE_DATA", updateRequest);
     self.scheduleUpdate();

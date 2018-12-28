@@ -52,7 +52,8 @@ modules: [
         position: "bottom_bar",	// This can be any of the regions.
         config: {
             // See 'Configuration options' for more information.
-            displayWeightGraph: true
+            units: 'imperial',
+            measurements: ['weight', 'fatRatio']
         }
     }
 ]
@@ -64,4 +65,13 @@ The following properties can be configured:
 
 | Option | Description
 | ------ | -----------
-| `displayWeightGraph` | Display Weight Graph<br><br> **Default value:** `true`
+| `units` | Units to display<br><br> **Default value:** `config.units`
+| `userName` | Name of user<br><br> **Default value:** `MagicMirror`
+| `clientId` | Client Id from step 3<br><br> **Default value:** ``
+| `clientSecret` | Consumer Secret from step 3<br><br> **Default value:** ``
+| `redirectUri` | Callback URL from step 3<br><br> **Default value:** ``
+| `initialLoadDelay` | Delay for first check<br><br> **Default value:** `0`
+| `updateInterval` | Update interval in milliseconds<br><br> **Default value:** `5 Minutes`
+| `daysOfHistory` | Days of data history to fetch<br><br> **Default value:** `14`
+| `measurements` | Array of measurements to check<br>**Possible values:** `weight`, `height`, `fatFreeMass`, `fatRatio`, `fatMassWeight`, `diastolicBloodPressure`, `systolicBloodPressure`, `heartPulse`, `temperature`, `sp02`, `bodyTemperature`, `skinTemperature`, `muscleMass`, `hydration`, `boneMass`, `pulseWaveVelocity`
+<br>**Example:** `['weight', 'fatRatio']`<br>**Default value:** `['weight']`
