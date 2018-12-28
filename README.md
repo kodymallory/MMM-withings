@@ -13,7 +13,7 @@ The following steps are necessary to use this module:
     4. Callback URL: Your HTTPS website/callback URL or https://example.com
     5. Application Website: Your Website or https://example.com
     6. Company: Your company or whatever you want
-    7. Logo: An image file that meets requirements. 'logo.jpeg' In this repo works.
+    7. Logo: An image file that meets requirements. 'logo.jpg' In this repo works.
 3. Populate config.js with the clientId, consumerSecret, and redirectUri (the Callback URL):
 ````javascript
 {
