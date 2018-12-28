@@ -1,5 +1,7 @@
 # Module: MMM-withings
-The `MMM-withings` module is a simple way to display data from the Withings Health API
+The `MMM-withings` module is an extension for [MagicMirror](https://github.com/MichMich/MagicMirror). It provides a way to display data from the Withings Health API in HTML5 plots using Chart.js
+
+![screenshot](screenshot.png)
 
 ## Setting Up API Key and User Account
 The following steps are necessary to use this module:
