@@ -1,5 +1,6 @@
 # Module: MMM-withings
 The `MMM-withings` module is a simple way to display data from the Withings Health API
+
 ## Setting Up API Key and User Account
 The following steps are necessary to use this module:
 1. Have a withings account:
@@ -24,14 +25,14 @@ The following steps are necessary to use this module:
 ````
 4. Once you have a client ID and consumer secret created, create and navigate to the following website
 ````url
-https://account.health.nokia.com/oauth2_user/authorize2?response_type=code&redirect_uri=https://example.com&client_id=<your_client_id>&scope=user.info,user.metrics,user.activity&state=1
+https://account.health.nokia.com/oauth2_user/authorize2?response_type=code&redirect_uri=https://example.com&scope=user.info,user.metrics,user.activity&state=1&client_id=<your_client_id>
 ````
 5. Login with your account credentials
 6. Allow this app
 7. You will be redirected to an example.com url with a code in the url
 E.g.
 ````url
-https://example.com/?code=deadbeefcafebabe12345789&state=1
+https://example.com/?state=1&code=deadbeefcafebabe12345789
 ````
 8. Copy the value for code into tokens.json in the following format
 ````json
