@@ -12,25 +12,63 @@ module.exports = NodeHelper.create({
     var self = this;
     console.log("##### Starting node helper for: " + self.name);
 
-    self.clientId = 'd8973ddc0d93a3b646724a04adddca246ef5c0a9018f963724125bd4747a972a';
-    self.clientSecret = '56b1d32e8ae199aabcda5fece5b982e89a8a6472f46ce035d230cfd28ba564d4';
     self.baseApi = 'account.health.nokia.com';
     self.measurementApi = 'wbsapi.withings.net';
     self.tokenPath = '/oauth2/token';
     self.authorizationUri = self.baseApi + '/oauth2_user/authorize2';
-    self.redirectUri = 'http://kodymallory.epizy.com';
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
 
     console.info("**** Setting the tokens from File: " + configFilename);
-    fs.readFile(configFilename, function read(err, data) {
-      if (err) throw err;
-      var parsedData = JSON.parse(data);
-      self.access_token = parsedData.access_token;
-      self.refresh_token = parsedData.refresh_token;
+  },
 
-      console.info("Access Token "+self.access_token);
-      console.info("Refresh Token "+self.refresh_token);
-    });
+  getAccessToken: function (code) {
+    var self = this;
+    console.info("Generating Access tokens...");
+    var options = {
+      hostname: self.baseApi,
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      path: self.tokenPath,
+      method: 'POST'
+    };
+    var request = Https.request(options, function (response) {
+      var data = '';
+      response.on('data', function (chunk) {
+        data += chunk;
+      });
+      response.on('end', function () {
+        var reply = JSON.parse(data);
+        console.info(reply);
+        switch (reply['errors'] || null) {
+          case null:
+            console.info("#### Got Tokens");
+            self.access_token = reply['access_token'];
+            self.refresh_token = reply['refresh_token'];
+            this.updateTokenFile(self.access_token, self.refresh_token);
+            this.sendSocketNotification("API_INITIALIZED");
+            break;
+          default:
+            //Fetching tokens error
+            console.info(reply.errors);
+            self.access_token = null;
+            self.refresh_token = null;
+            setTimeout(function () {
+              self.initializeApi();
+            }, 1000);
+            break;
+        }
+      }.bind(self));
+    }.bind(self));
+    request.write(Querystring.stringify({
+      'grant_type': 'authorization_code',
+      'code': code,
+      'client_id': self.clientId,
+      'client_secret': self.clientSecret,
+      'redirect_uri': self.redirectUri
+    }));
+    request.on('error', function (error) {
+      console.error(error + " Re-requesting authorization! - AGAIN !!");
+    }.bind(self));
+    request.end();
   },
 
   getWeightData: function (updateRequest) {
@@ -91,13 +129,49 @@ module.exports = NodeHelper.create({
     request.end();
   },
 
-  socketNotificationReceived: function (notification, payload) {
+  initializeApi: function(config) {
     var self = this;
 
-    if (notification === "UPDATE_DATA") {
-      console.info("UPDATE_DATA Received");
-      self.getWeightData(payload);
-    };
+    if (config) {
+      console.log("Initializing API with config", config);
+      self.clientId = config.clientId;
+      self.clientSecret = config.clientSecret;
+      self.redirectUri = config.redirectUri;
+    }
+
+    fs.readFile(configFilename, function read(err, data) {
+      if (err) throw err;
+      var parsedData = JSON.parse(data);
+      if (parsedData.access_token && parsedData.refresh_token) {
+        self.access_token = parsedData.access_token;
+        self.refresh_token = parsedData.refresh_token;
+        console.info("Access Token " + self.access_token);
+        console.info("Refresh Token " + self.refresh_token);
+        self.sendSocketNotification("API_INITIALIZED");
+      }
+      else {
+        console.info("No Access Token Found, Trying code...");
+        code = parsedData.code;
+
+        console.log("Code is ", code);
+        self.getAccessToken(code);
+      }
+    });
+  },
+
+  socketNotificationReceived: function (notification, payload) {
+    var self = this;
+    switch(notification) {
+      case "INITIALIZE_API":
+        self.initializeApi(payload);
+        break;
+      case "UPDATE_DATA":
+        self.getWeightData(payload);
+        break;
+      default:
+        console.error("Unhandled Notification ", notification);
+        break;
+    }
   },
 
   refresh: function () {
@@ -117,16 +191,16 @@ module.exports = NodeHelper.create({
       response.on('end', function () {
         var reply = JSON.parse(data);
         console.info(reply);
-        switch (reply['error'] || null) {
+        switch (reply['errors'] || null) {
           case null:
-            console.info("#### Tokens");
+            console.info("#### Refresh Tokens");
             self.access_token = reply['access_token'];
             self.refresh_token = reply['refresh_token'];
             this.updateTokenFile(self.access_token, self.refresh_token);
             break;
           default:
             //Refreshing error
-            console.info(reply['error_description'] + " Re-requesting authorization!");
+            console.info(reply.errors);
             self.access_token = null;
             self.refresh_token = null;
             break;

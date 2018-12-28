@@ -13,7 +13,7 @@ Module.register("MMM-withings",{
 
     this.userName = 'Magic Mirror';
 
-    this.scheduleUpdate(this.config.initialLoadDelay);
+    this.sendSocketNotification("INITIALIZE_API", this.config);
   },
 
   getScripts: function () {
@@ -91,16 +91,23 @@ Module.register("MMM-withings",{
 
   socketNotificationReceived: function (notification, payload) {
     self = this;
-    if (notification === "WEIGHT_DATA_UPDATE") {
-      self.weightData = {
-        'weights': [],
-        'dates': []
-      };
-      payload.forEach(function(meas) {
-        self.weightData.weights.push(meas.weight);
-        self.weightData.dates.push(meas.date);
-      });
-      this.updateDom();
+    switch(notification) {
+      case "WEIGHT_DATA_UPDATE":
+        self.weightData = {
+          'weights': [],
+          'dates': []
+        };
+        payload.forEach(function (meas) {
+          self.weightData.weights.push(meas.weight);
+          self.weightData.dates.push(meas.date);
+        });
+        this.updateDom();
+        break;
+      case "API_INITIALIZED":
+        this.scheduleUpdate(this.config.initialLoadDelay);
+        break;
+      default:
+        break;
     }
   },
 
