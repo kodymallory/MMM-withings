@@ -13,24 +13,24 @@ The following steps are necessary to use this module:
     7. Logo: An image file that meets requirements. 'logo.jpeg' In this repo works.
 3. Populate config.js with the clientId, consumerSecret, and redirectUri (the Callback URL):
 ````javascript
-		{
-			module: "MMM-withings",
-			config: {
-				clientId: 'deadbeefdeadbeef',
-				clientSecret: 'deadbeefdeadbeef',
-				redirectUri: 'https://example.com',
-			}
-		},
+{
+    module: "MMM-withings",
+    config: {
+        clientId: 'deadbeefdeadbeef',
+        clientSecret: 'deadbeefdeadbeef',
+        redirectUri: 'https://example.com',
+    }
+},
 ````
 4. Once you have a client ID and consumer secret created, create and navigate to the following website
-````javascript
+````url
 https://account.health.nokia.com/oauth2_user/authorize2?response_type=code&redirect_uri=https://example.com&client_id=<your_client_id>&scope=user.info,user.metrics,user.activity&state=1
 ````
 5. Login with your account credentials
 6. Allow this app
 7. You will be redirected to an example.com url with a code in the url
 E.g.
-````javascript
+````url
 https://example.com/?code=deadbeefcafebabe12345789&state=1
 ````
 8. Copy the value for code into tokens.json in the following format
