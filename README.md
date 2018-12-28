@@ -75,5 +75,4 @@ The following properties can be configured:
 | `initialLoadDelay` | Delay for first check<br><br> **Default value:** `0`
 | `updateInterval` | Update interval in milliseconds<br><br> **Default value:** `5 Minutes`
 | `daysOfHistory` | Days of data history to fetch<br><br> **Default value:** `14`
-| `measurements` | Array of measurements to check<br>**Possible values:** `weight`, `height`, `fatFreeMass`, `fatRatio`, `fatMassWeight`, `diastolicBloodPressure`, `systolicBloodPressure`, `heartPulse`, `temperature`, `sp02`, `bodyTemperature`, `skinTemperature`, `muscleMass`, `hydration`, `boneMass`, `pulseWaveVelocity`
-<br>**Example:** `['weight', 'fatRatio']`<br>**Default value:** `['weight']`
+| `measurements` | Array of measurements to check<br>**Possible values:** `weight`, `height`, `fatFreeMass`, `fatRatio`, `fatMassWeight`, `diastolicBloodPressure`, `systolicBloodPressure`, `heartPulse`, `temperature`, `sp02`, `bodyTemperature`, `skinTemperature`, `muscleMass`, `hydration`, `boneMass`, `pulseWaveVelocity`<br>**Example:** `['weight', 'fatRatio']`<br>**Default value:** `['weight']`
