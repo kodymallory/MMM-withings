@@ -7,6 +7,12 @@ const filename = "/tokens.json";
 var configFilename = path.resolve(__dirname + filename);
 const KG_TO_LBS = 2.2046;
 
+//const rawdata = fs.readFileSync('/maps/workouts.json');
+var workoutMap = '';
+fs.readFile(path.resolve(__dirname + '/maps/workouts.json'), (err, data) => {
+  if (err) throw err;
+  workoutMap = JSON.parse(data);
+});
 const metricToImperialMap = {
   'kg': 'lbs',
   'celcius': 'farenheight',
@@ -99,7 +105,41 @@ const measInfo = {
     'index': '91',
     'si_unit': 'm/s'
   }
+}
+
+function rawDuration(serie){
+  var date1 = new Date(serie.enddate*1000);
+  var date2 = new Date(serie.startdate*1000);
+  return (date1.getTime() - date2.getTime())/1000/60; // Duration in minutes
 };
+
+function workoutDuration(serie){
+  var date1 = new Date(serie.enddate*1000);
+  var date2 = new Date(serie.startdate*1000);
+  var difference = date1.getTime() - date2.getTime();
+
+  var duration = "";
+
+  var daysDifference = Math.floor(difference/1000/60/60/24);
+  difference -= daysDifference*1000*60*60*24
+
+  duration = daysDifference<1 ? "" : daysDifference+"d";
+
+  // var days =
+  var hoursDifference = Math.floor(difference/1000/60/60);
+  difference -= hoursDifference*1000*60*60
+  duration = duration + (hoursDifference<1 ? "" : hoursDifference+":");
+
+  var minutesDifference = Math.floor(difference/1000/60);
+  difference -= minutesDifference*1000*60
+  duration = duration + (minutesDifference<1 ? "" : minutesDifference);
+
+  // var secondsDifference = Math.floor(difference/1000);
+  // duration = duration + (secondsDifference<1 ? "" : secondsDifference+"s");
+
+  return duration;
+};
+
 
 module.exports = NodeHelper.create({
   start: function () {
@@ -107,7 +147,7 @@ module.exports = NodeHelper.create({
     console.log("##### Starting node helper for: " + self.name);
 
     self.baseApi = 'account.health.nokia.com';
-    self.measurementApi = 'wbsapi.withings.net';
+    self.withingsApi = 'wbsapi.withings.net';
     self.tokenPath = '/oauth2/token';
     self.authorizationUri = self.baseApi + '/oauth2_user/authorize2';
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
@@ -182,26 +222,64 @@ module.exports = NodeHelper.create({
     request.end();
   },
 
-  getMeasurement: function (updateRequest) {
+  getRequest: function(service, action, updateRequest) {
+    //service is in ["measure", "sleep", "notify"]
     var self = this;
-    var measTypes = updateRequest.measTypes;
+    // Default pathPrefix
+    var pathPrefix = '/v2/'+service+"?";
 
-    console.info("Fetching Weight for the past " + updateRequest.daysOfHistory + " days");
+    // Change the pathPrefix if needed
+    if (service=="measure"){
+      if (action=="getmeas"){
+        pathPrefix = "/measure?";
+      }
+    } else if(service=="notify"){
+      pathPrefix = "/measure?";
+    }
+
+    console.info("Fetching data");
+    console.info("service: "+service+" action: "+action);
+
     var date = new Date();
     // TODO: Replace with variable offset
     date.setDate(date.getDate() - updateRequest.daysOfHistory);
     var updateTimestamp = Math.floor(date.getTime() / 1000);
+
+    // Set default variables in request
     var options = {
-      hostname: self.measurementApi,
-      path: '/measure?' + Querystring.stringify({
-        'action':'getmeas',
-        'access_token': self.access_token,
-        'meastype': measTypes.map(function (type) { return measInfo[type].index}),
-        'category': '1',
-        'lastupdate': updateTimestamp
+      hostname: self.withingsApi,
+      path: pathPrefix + Querystring.stringify({
+        'action': action,
+        'access_token': self.access_token
       }),
       method: 'GET'
     };
+
+
+    if (action=='getmeas'){
+      var measTypes = updateRequest.measTypes;
+      options['path'] = options['path'] + "&"+Querystring.stringify({
+          'meastype': measTypes.map(function (type) { return measInfo[type].index}),
+          'category': '1',
+          'lastupdate': updateTimestamp
+        });
+    }else if (action=='getworkouts'){
+      var now = new Date();
+      var startDate = new Date();
+      startDate.setDate(now.getDate() - updateRequest.daysOfHistory);
+      var enddateymd = now.toJSON().slice(0,10);// https://stackoverflow.com/a/19079030
+      var startdateymd = startDate.toJSON().slice(0,10);// https://stackoverflow.com/a/19079030
+
+      var updateTimestamp = Math.floor(date.getTime() / 1000);
+      var workouts = updateRequest.workouts;
+      var workoutLimitPerDay = updateRequest.workoutLimitPerDay;
+      // options['path'] = options['path'] + "&lastupdate="+updateTimestamp;
+      options['path'] = options['path'] + "&"+Querystring.stringify({
+          'startdateymd': startdateymd,
+          'enddateymd': enddateymd
+        });
+    }
+    console.info("Fetching Weight for the past " + updateRequest.daysOfHistory + " days");
 
     var request = Https.request(options, function (response) {
       var data = '';
@@ -213,21 +291,75 @@ module.exports = NodeHelper.create({
         switch (reply.status) {
           case 0:
             console.info("Got Data Back");
-            var measurements = reply.body.measuregrps;
-            var measurementData = [];
-            measurements.forEach(function (measure){
-              var date = new Date(measure.date * 1000);
-              measure.measures.forEach(function (meas) {
-                measurementData.push({
-                  'type': measTypeMap[meas.type],
-                  'measurement': self.convertData(meas),
-                  'date': date,
-                  'unit': metricToImperialMap[measInfo[measTypeMap[meas.type]].si_unit]
+
+            if (action=='getmeas'){
+              var measurements = reply.body.measuregrps;
+              var measurementData = [];
+              measurements.forEach(function (measure){
+                var date = new Date(measure.date * 1000);
+                measure.measures.forEach(function (meas) {
+                  measurementData.push({
+                    'type': measTypeMap[meas.type],
+                    'measurement': self.convertData(meas),
+                    'date': date,
+                    'unit': metricToImperialMap[measInfo[measTypeMap[meas.type]].si_unit]
+                  });
                 });
               });
-            });
-            // send Data To Display Module
-            this.sendSocketNotification("DATA_UPDATE", measurementData);
+              // send Data To Display Module
+              this.sendSocketNotification("DATA_UPDATE", measurementData);
+            }
+            else if(action=="getworkouts")
+            {
+              var series = reply.body.series;
+              // Reverse the order of the keys: younger activity to older one
+              var seriesKeys = Object.keys(series).reverse();
+              var Data = [[],{}]; // Data[0] stores dates and Data[1] stores the workout
+              var workout = '';
+              var icon = "";
+              var workoutCount = {};
+
+
+              var previousDate = series[seriesKeys[0]].date;
+              Data[0]=[previousDate];
+              Data[1][previousDate]=[];
+
+              seriesKeys.forEach(function(idx){
+                let serie = series[idx];
+                if (serie.date!=previousDate){
+                  workoutCount = {};
+                  previousDate = serie.date;
+                  if (!Data[0].includes(serie.date)){
+                    Data[0].push(serie.date);
+                    Data[1][serie.date]=[];
+                  }
+                }
+
+
+                workout = workoutMap[serie.category];
+                if (workouts.includes(workout)){
+                  if (typeof workoutCount[workout]=="undefined"){
+                    workoutCount[workout] = 1;
+                  }
+                  if (workoutCount[workout]<workoutLimitPerDay){
+                    if (rawDuration(serie)>=updateRequest.workoutDurationMin){
+                      Data[1][serie.date].push({
+                        "category": workout,
+                        "startdate": serie.startdate,
+                        "enddate": serie.enddate,
+                        "duration": workoutDuration(serie),
+                        "calories": serie.data.calories,
+                        "steps": serie.data.steps
+                      });
+                      workoutCount[workout]++;
+                    }
+                  }
+                }
+
+              });
+              // send Data To Display Module
+              this.sendSocketNotification("WORKOUT_UPDATE", Data);
+            }
             break;
           case 401:
             console.info("Token Expired");
@@ -284,7 +416,8 @@ module.exports = NodeHelper.create({
         self.initializeApi(payload);
         break;
       case "UPDATE_DATA":
-        self.getMeasurement(payload);
+        self.getRequest("measure", "getmeas", payload);
+        self.getRequest("measure", "getworkouts", payload);
         break;
       default:
         console.error("Unhandled Notification ", notification);
