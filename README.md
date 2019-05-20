@@ -76,3 +76,28 @@ The following properties can be configured:
 | `updateInterval` | Update interval in milliseconds<br><br> **Default value:** `5 Minutes`
 | `daysOfHistory` | Days of data history to fetch<br><br> **Default value:** `14`
 | `measurements` | Array of measurements to check<br>**Possible values:** `weight`, `height`, `fatFreeMass`, `fatRatio`, `fatMassWeight`, `diastolicBloodPressure`, `systolicBloodPressure`, `heartPulse`, `temperature`, `sp02`, `bodyTemperature`, `skinTemperature`, `muscleMass`, `hydration`, `boneMass`, `pulseWaveVelocity`<br>**Example:** `['weight', 'fatRatio']`<br>**Default value:** `['weight']`
+
+### View your workouts
+
+#### List your workouts
+![](list.png)
+
+You can list all your activities track with your watch or the withings health app.
+
+| Option | Description
+| ------ | -----------
+|`workouts` | Array of workouts to list <br>**Possible values:** `walk`, `run`, `hiking`, `skating`, `bmx`, `cycle`, `swimming`, `surfing`, `kitesurfing`, `windsurfing`, `bodyboard`, `tennis`, `table tennis`, `squash`, `badminton`, `lift weights`, `calisthenics`, `elliptical`, `pilates`, `basket-ball`, `soccer`, `football`, `rugby`, `volley-ball`, `waterpolo`, `horse riding`, `golf`, `yoga`, `dancing`, `boxe`, `fencing`, `wrestling`, `martial arts`, `skiing`, `snowboarding`, `other`, `sleep`, `no activity`, `rowing`, `zumba`, `baseball`, `handball`, `hockey`, `ice hockey`, `climbing`, `ice skating`, `multi-sport`
+|`workoutLimitPerDay` | The maximum quantily of each workout to list
+|`workoutDurationMin` | minimal duration of workout to list (in minute)
+
+#### Highlight certain activities
+
+![](highlight.png)
+
+This image was obtain with this option:
+
+```js
+highlight:{
+    workouts:["boxe", "cycle"],
+}
+```

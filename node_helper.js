@@ -341,7 +341,7 @@ module.exports = NodeHelper.create({
                   if (typeof workoutCount[workout]=="undefined"){
                     workoutCount[workout] = 1;
                   }
-                  if (workoutCount[workout]<workoutLimitPerDay){
+                  if (workoutCount[workout]<=workoutLimitPerDay){
                     if (rawDuration(serie)>=updateRequest.workoutDurationMin){
                       Data[1][serie.date].push({
                         "category": workout,
@@ -360,6 +360,7 @@ module.exports = NodeHelper.create({
               // send Data To Display Module
               this.sendSocketNotification("WORKOUT_UPDATE", Data);
             }
+            this.sendSocketNotification("UPDATE_DOM", {});
             break;
           case 401:
             console.info("Token Expired");
@@ -418,6 +419,9 @@ module.exports = NodeHelper.create({
       case "UPDATE_DATA":
         self.getRequest("measure", "getmeas", payload);
         self.getRequest("measure", "getworkouts", payload);
+        break;
+      case "UPDATE_WORKOUTS":
+        //self.getRequest("measure", "getworkouts", payload);
         break;
       default:
         console.error("Unhandled Notification ", notification);
