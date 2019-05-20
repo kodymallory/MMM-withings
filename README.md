@@ -101,3 +101,9 @@ highlight:{
     workouts:["boxe", "cycle"],
 }
 ```
+
+# TODO
+
+- [ ] add other icons for workout
+- [ ] display Heart Rate in the 4 zones
+- [ ] plot Heart Rate
