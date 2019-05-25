@@ -101,8 +101,9 @@ Module.register("MMM-withings",{
           serie = self.workoutData[1][date][key];
           if (serie.category === workout){
             var icon = document.createElement("img");
-            icon.setAttribute("src","MMM-withings/imgs/"+serie.category+".svg");
-            icon.setAttribute("height","90px");
+            icon.setAttribute("src","MMM-withings/imgs/"+serie.category+".png");
+            icon.setAttribute("height","50px");
+            icon.setAttribute("style","padding:20px 50px");
             mainTuile = true;
 
             mainDiv.appendChild(icon);

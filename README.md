@@ -1,7 +1,16 @@
-# Module: MMM-withings
-The `MMM-withings` module is an extension for [MagicMirror](https://github.com/MichMich/MagicMirror). It provides a way to display data from the Withings Health API in HTML5 plots using Chart.js
 
-![screenshot](screenshot.png)
+# Module: MMM-withings
+
+## Screenshots
+
+|   |   |   |
+| - | - | - |
+| measurment | list | highlight |
+| ![](screenshot.png) | ![](list.png) | ![](highlight.png)|
+
+
+The `MMM-withings` module is an extension for [MagicMirror](https://github.com/MichMich/MagicMirror). It provides a way to display data (measurements and workouts) from the Withings Health API. Data can be listed or plotted in HTML5 using Chart.js
+
 
 ## Setting Up API Key and User Account
 The following steps are necessary to use this module:
@@ -46,6 +55,9 @@ https://example.com/?state=1&code=deadbeefcafebabe12345789
 
 ## Using the module
 
+
+![screenshot](screenshot.png)
+
 To use this module, add it to the modules array in the `config/config.js` file:
 ````javascript
 modules: [
@@ -55,7 +67,11 @@ modules: [
         config: {
             // See 'Configuration options' for more information.
             units: 'imperial',
-            measurements: ['weight', 'fatRatio']
+            measurements: ['weight', 'fatRatio'],
+            workouts: ["bicycling", "swimming"],
+            highlights: {
+                workouts: ["boxing", "bicycling"]
+            }
         }
     }
 ]
@@ -86,7 +102,7 @@ You can list all your activities track with your watch or the withings health ap
 
 | Option | Description
 | ------ | -----------
-|`workouts` | Array of workouts to list <br>**Possible values:** `walk`, `run`, `hiking`, `skating`, `bmx`, `cycle`, `swimming`, `surfing`, `kitesurfing`, `windsurfing`, `bodyboard`, `tennis`, `table tennis`, `squash`, `badminton`, `lift weights`, `calisthenics`, `elliptical`, `pilates`, `basket-ball`, `soccer`, `football`, `rugby`, `volley-ball`, `waterpolo`, `horse riding`, `golf`, `yoga`, `dancing`, `boxe`, `fencing`, `wrestling`, `martial arts`, `skiing`, `snowboarding`, `other`, `sleep`, `no activity`, `rowing`, `zumba`, `baseball`, `handball`, `hockey`, `ice hockey`, `climbing`, `ice skating`, `multi-sport`
+|`workouts` | Array of workouts to list <br>**Possible values:** see [this](workouts_available.md)
 |`workoutLimitPerDay` | The maximum quantily of each workout to list
 |`workoutDurationMin` | minimal duration of workout to list (in minute)
 
@@ -98,12 +114,16 @@ This image was obtain with this option:
 
 ```js
 highlight:{
-    workouts:["boxe", "cycle"],
+    workouts:["boxe", "bicycling"],
 }
 ```
 
 # TODO
 
+- [ ] separate the request of the display `highlight` from the `list`.
+- [ ] add option to change the header
 - [ ] add other icons for workout
+- [ ] find how to colorize svg via css
 - [ ] display Heart Rate in the 4 zones
 - [ ] plot Heart Rate
+- [ ] Dom is not updated after refreshing the token
