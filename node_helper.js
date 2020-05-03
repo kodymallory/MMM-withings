@@ -2,6 +2,7 @@ const NodeHelper = require("node_helper");
 const path = require("path");
 const fs = require("fs");
 const Https = require('https');
+const open = require('open');
 const Querystring = require('querystring');
 const filename = "/tokens.json";
 var configFilename = path.resolve(__dirname + filename);
@@ -257,24 +258,67 @@ module.exports = NodeHelper.create({
       self.units = config.units;
     }
 
-    fs.readFile(configFilename, function read(err, data) {
-      if (err) throw err;
-      var parsedData = JSON.parse(data);
-      if (parsedData.access_token && parsedData.refresh_token) {
-        self.access_token = parsedData.access_token;
-        self.refresh_token = parsedData.refresh_token;
-        console.info("Access Token " + self.access_token);
-        console.info("Refresh Token " + self.refresh_token);
-        self.sendSocketNotification("API_INITIALIZED");
-      }
-      else {
-        console.info("No Access Token Found, Trying code...");
-        code = parsedData.code;
+    try {
+      fs.readFile(configFilename, function read(err, data) {
+        if (err) {
+          if (err.code === "ENOENT") {
+            console.log(`Could not find file: ${configFilename}`);
 
-        console.log("Code is ", code);
-        self.getAccessToken(code);
-      }
-    });
+            // Create server to process code
+            var express = require('express');
+            var app = express();
+            app.listen(48985);
+
+            app.get("/withings", function (req, resp) {
+              resp.send(200);
+              self.getAccessToken(req.query.code);
+            });
+
+            // Request code in the default browser.
+            (async () => {
+              const tokenUrl =
+                `https://${self.authorizationUri}?response_type=code&redirect_uri=http://localhost:48985/withings&scope=user.info,user.metrics,user.activity&state=1&client_id=${config.clientId}`;
+              console.log('URL ', tokenUrl);
+              await open(
+                tokenUrl,
+                {
+                  wait: true,
+                  useDisplayString: true
+                });
+            })()
+            .then(done => {
+              console.log("Async then");
+            })
+            .catch(err => {
+              console.log("Async catch: ",err);
+            });
+            return;
+          }
+          else {
+            console.error(err);
+            return;
+          }
+        }
+
+        var parsedData = JSON.parse(data);
+        if (parsedData.access_token && parsedData.refresh_token) {
+          self.access_token = parsedData.access_token;
+          self.refresh_token = parsedData.refresh_token;
+          console.info("Access Token " + self.access_token);
+          console.info("Refresh Token " + self.refresh_token);
+          self.sendSocketNotification("API_INITIALIZED");
+        }
+        else {
+          console.info("No Access Token Found, Trying code...");
+          code = parsedData.code;
+
+          console.log("Code is ", code);
+          self.getAccessToken(code);
+        }
+      });
+    } catch (err) {
+      console.error("Recieved Error: ", err, " stack:", err.stack);
+    }
   },
 
   socketNotificationReceived: function (notification, payload) {
