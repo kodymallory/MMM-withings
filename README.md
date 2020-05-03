@@ -27,7 +27,7 @@ The following steps are necessary to use this module:
 ````
 4. Once you have a client ID and consumer secret created, create and navigate to the following website
 ````url
-https://account.health.nokia.com/oauth2_user/authorize2?response_type=code&redirect_uri=https://example.com&scope=user.info,user.metrics,user.activity&state=1&client_id=<your_client_id>
+https://account.withings.com/oauth2_user/authorize2?response_type=code&redirect_uri=https://example.com&scope=user.info,user.metrics,user.activity&state=1&client_id=<your_client_id>
 ````
 5. Login with your account credentials
 6. Allow this app
