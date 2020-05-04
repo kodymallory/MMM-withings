@@ -1,0 +1,23 @@
+{
+  "name": "MMM-withings",
+  "version": "1.0.0",
+  "description": "The `MMM-withings` module is an extension for [MagicMirror](https://github.com/MichMich/MagicMirror). It provides a way to display data from the Withings Health API in HTML5 plots using Chart.js",
+  "main": "MMM-withings.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kodymallory/MMM-withings.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kodymallory/MMM-withings/issues"
+  },
+  "homepage": "https://github.com/kodymallory/MMM-withings#readme",
+  "dependencies": {
+    "open": "^7.0.3"
+  }
+}
