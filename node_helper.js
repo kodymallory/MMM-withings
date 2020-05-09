@@ -118,7 +118,7 @@ module.exports = NodeHelper.create({
     self.authorizationUri = self.baseApi + '/oauth2_user/authorize2';
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
 
-    self.attemptAuthorization = false;
+    self.attemptAuthorization = true;
     self.clientId = CLIENT_ID;
     self.clientSecret = CLIENT_API_K;
     self.redirectUri = REDIRECT_URI;

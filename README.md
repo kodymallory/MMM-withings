@@ -3,23 +3,14 @@ The `MMM-withings` module is an extension for [MagicMirror](https://github.com/M
 
 ![screenshot](screenshot.png)
 
-## Enable Authorization automatically
-A mechanism is now included to enable authorization without manually generating an API key and developer app.
+## Authorize app with Withings
+The module needs access to your Withings data in order to display it. The authorization is restricted to localhost. This feature can be disabled from config.js and an API key can be manually generated and used following [these instructions](#Setting-Up-API-Key-and-User-Account).
 
 1. Ensure you have a registered Withings account
-2. Populate config.js with the parameter to attempt authorization:
-````javascript
-{
-    module: "MMM-withings",
-    config: {
-        attemptAuthorization: true
-    }
-},
-````
-3. Launch Magic Mirror with withings module included.
-4. After some time, the default browser will open on the default display linking to withings.com with a prompt to login.
-5. Log in with Withings account, and authorize Personal Mirror Project
-6. After page returns with OK, you can close the browser. Data should start loading into the Withings module.
+2. Launch Magic Mirror with withings module included.
+3. After some time, the default browser will open on the default display linking to withings.com with a prompt to login.
+4. Log in with Withings account, and authorize Personal Mirror Project
+5. After page returns with OK, you can close the browser. Data should start loading into the Withings module.
 
 ## Using the module
 To use this module, add it to the modules array in the `config/config.js` file:
@@ -31,8 +22,7 @@ modules: [
         config: {
             // See 'Configuration options' for more information.
             units: 'imperial',
-            measurements: ['weight', 'fatRatio'],
-            attemptAuthorization: true
+            measurements: ['weight', 'fatRatio']
         }
     }
 ]
@@ -45,19 +35,18 @@ The following properties can be configured:
 | Option | Description
 | ------ | -----------
 | `units` | Units to display<br><br> **Default value:** `config.units`
-| `userName` | Name of user<br><br> **Default value:** `MagicMirror`
-| `attemptAuthorization` | Whether to attempt getting an authorization code using default app<br><br> **Default value:** `false`
-| `clientId` | Client Id from step 3<br><br> **Default value:** ``
-| `clientSecret` | Consumer Secret from step 3<br><br> **Default value:** ``
-| `redirectUri` | Callback URL from step 3<br><br> **Default value:** ``
 | `initialLoadDelay` | Delay for first check<br><br> **Default value:** `0`
 | `updateInterval` | Update interval in milliseconds<br><br> **Default value:** `5 Minutes`
 | `daysOfHistory` | Days of data history to fetch<br><br> **Default value:** `14`
 | `measurements` | Array of measurements to check<br>**Possible values:** `weight`, `height`, `fatFreeMass`, `fatRatio`, `fatMassWeight`, `diastolicBloodPressure`, `systolicBloodPressure`, `heartPulse`, `temperature`, `sp02`, `bodyTemperature`, `skinTemperature`, `muscleMass`, `hydration`, `boneMass`, `pulseWaveVelocity`<br>**Example:** `['weight', 'fatRatio']`<br>**Default value:** `['weight']`
+| `userName` | Name of user<br><br> **Default value:** `MagicMirror`
+| `attemptAuthorization` | Attempt authorization using default app. If false, use [these instructions](#Setting-Up-API-Key-and-User-Account) for generating API key<br><br> **Default value:** `true`
+| `clientId` | Client Id from step 3<br><br> **Default value:** ``
+| `clientSecret` | Consumer Secret from step 3<br><br> **Default value:** ``
+| `redirectUri` | Callback URL from step 3<br><br> **Default value:** ``
 
-## Setting Up API Key and User Account (Old manual method)
-The following steps are necessary to use this module:
-1. Have a withings account:
+## Setting Up API Key and User Account
+1. Have a withings account
 2. Navigate to [here](https://account.withings.com/partner/add_oauth2) to create an application (can be a fake application)
     1. Application Name: Can be anything
     2. Description: Can be anything
