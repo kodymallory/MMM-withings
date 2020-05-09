@@ -279,8 +279,7 @@ module.exports = NodeHelper.create({
       await open(
         tokenUrl,
         {
-          wait: true,
-          useDisplayString: false
+          wait: true
         });
     })()
     .catch(err => {

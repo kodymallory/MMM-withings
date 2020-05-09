@@ -3,7 +3,25 @@ The `MMM-withings` module is an extension for [MagicMirror](https://github.com/M
 
 ![screenshot](screenshot.png)
 
-## Setting Up API Key and User Account
+## Enable Authorization automatically
+A mechanism is now included to enable authorization without manually generating an API key and developer app.
+
+1. Have a withings account
+2. Populate config.js with the parameter to attempt authorization:
+````javascript
+{
+    module: "MMM-withings",
+    config: {
+        attemptAuthorization: true
+    }
+},
+````
+3. Launch magic mirror with withings module included.
+4. After some time, the default browser will open on the default display linking to withings.com
+5. Log in with withings account, and authorize Personal Mirror Project
+6. After page returns with OK, you can close the browser. Data should start loading into the withings module.
+
+## Setting Up API Key and User Account (Old manual method)
 The following steps are necessary to use this module:
 1. Have a withings account:
 2. Navigate to [here](https://account.withings.com/partner/add_oauth2) to create an application (can be a fake application)
@@ -69,6 +87,7 @@ The following properties can be configured:
 | ------ | -----------
 | `units` | Units to display<br><br> **Default value:** `config.units`
 | `userName` | Name of user<br><br> **Default value:** `MagicMirror`
+| `attemptAuthorization` | Whether to attempt getting an authorization code using default app<br><br> **Default value:** `false`
 | `clientId` | Client Id from step 3<br><br> **Default value:** ``
 | `clientSecret` | Consumer Secret from step 3<br><br> **Default value:** ``
 | `redirectUri` | Callback URL from step 3<br><br> **Default value:** ``
