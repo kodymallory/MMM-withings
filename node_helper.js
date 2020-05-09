@@ -425,7 +425,7 @@ module.exports = NodeHelper.create({
     var toWriteKeys = JSON.stringify(obj);
     fs.writeFile(tokenFilename, toWriteKeys, function (err) {
       if (err) throw err;
-      console.log('Saved!');
+      console.log('Saved tokens!');
     });
   },
 });
