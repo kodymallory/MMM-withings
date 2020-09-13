@@ -2,10 +2,16 @@ const NodeHelper = require("node_helper");
 const path = require("path");
 const fs = require("fs");
 const Https = require('https');
+const open = require('open');
 const Querystring = require('querystring');
 const filename = "/tokens.json";
-var configFilename = path.resolve(__dirname + filename);
+var tokenFilename = path.resolve(__dirname + filename);
 const KG_TO_LBS = 2.2046;
+
+const CLIENT_ID = "d8973ddc0d93a3b646724a04adddca246ef5c0a9018f963724125bd4747a972a";
+const CLIENT_API_K = "56b1d32e8ae199aabcda5fece5b982e89a8a6472f46ce035d230cfd28ba564d4";
+const REDIRECT_PORT = 48985;
+const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/withings`;
 
 const metricToImperialMap = {
   'kg': 'lbs',
@@ -112,7 +118,12 @@ module.exports = NodeHelper.create({
     self.authorizationUri = self.baseApi + '/oauth2_user/authorize2';
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
 
-    console.info("**** Setting the tokens from File: " + configFilename);
+    self.attemptAuthorization = true;
+    self.clientId = CLIENT_ID;
+    self.clientSecret = CLIENT_API_K;
+    self.redirectUri = REDIRECT_URI;
+
+    console.info("**** Setting the tokens from File: " + tokenFilename);
   },
 
   convertData: function (meas) {
@@ -246,35 +257,91 @@ module.exports = NodeHelper.create({
     request.end();
   },
 
+  getAuthorizationCode: function() {
+    var self = this;
+
+    // Create server to process code
+    var express = require('express');
+    var app = express();
+    app.listen(48985);
+
+    app.get("/withings", function (req, resp) {
+      resp.send(200);
+      self.getAccessToken(req.query.code);
+      app.close();
+    });
+
+    // Request code in the default browser.
+    (async () => {
+      const tokenUrl =
+        `https://${self.authorizationUri}?response_type=code&redirect_uri=${self.redirectUri}&scope=user.info,user.metrics,user.activity&state=1&client_id=${self.clientId}`;
+      console.log('URL ', tokenUrl);
+      await open(
+        tokenUrl,
+        {
+          wait: true
+        });
+    })()
+    .catch(err => {
+      console.log("Catch while getting authorization code: ", err);
+    });
+  },
+
   initializeApi: function(config) {
     var self = this;
 
     if (config) {
       console.log("Initializing API with config", config);
-      self.clientId = config.clientId;
-      self.clientSecret = config.clientSecret;
-      self.redirectUri = config.redirectUri;
+      if (config.clientId) {
+        self.clientId = config.clientId;
+      }
+      if (config.clientSecret) {
+        self.clientSecret = config.clientSecret;
+      }
+      if (config.redirectUri) {
+        self.redirectUri = config.redirectUri;
+      }
+      if (config.attemptAuthorization) {
+        self.attemptAuthorization = config.attemptAuthorization;
+      }
       self.units = config.units;
     }
 
-    fs.readFile(configFilename, function read(err, data) {
-      if (err) throw err;
-      var parsedData = JSON.parse(data);
-      if (parsedData.access_token && parsedData.refresh_token) {
-        self.access_token = parsedData.access_token;
-        self.refresh_token = parsedData.refresh_token;
-        console.info("Access Token " + self.access_token);
-        console.info("Refresh Token " + self.refresh_token);
-        self.sendSocketNotification("API_INITIALIZED");
-      }
-      else {
-        console.info("No Access Token Found, Trying code...");
-        code = parsedData.code;
+    try {
+      fs.readFile(tokenFilename, function read(err, data) {
+        if (err) {
+          if (err.code === "ENOENT") {
+            console.log(`Could not find tokens file: ${tokenFilename}`);
+            if (self.attemptAuthorization) {
+              self.getAuthorizationCode();
+            }
+            return;
+          }
+          else {
+            console.error(err);
+            return;
+          }
+        }
 
-        console.log("Code is ", code);
-        self.getAccessToken(code);
-      }
-    });
+        var parsedData = JSON.parse(data);
+        if (parsedData.access_token && parsedData.refresh_token) {
+          self.access_token = parsedData.access_token;
+          self.refresh_token = parsedData.refresh_token;
+          console.info("Access Token " + self.access_token);
+          console.info("Refresh Token " + self.refresh_token);
+          self.sendSocketNotification("API_INITIALIZED");
+        }
+        else {
+          console.info("No Access Token Found, Trying code...");
+          code = parsedData.code;
+
+          console.log("Code is ", code);
+          self.getAccessToken(code);
+        }
+      });
+    } catch (err) {
+      console.error("Recieved Error: ", err, " stack:", err.stack);
+    }
   },
 
   socketNotificationReceived: function (notification, payload) {
@@ -308,7 +375,7 @@ module.exports = NodeHelper.create({
       });
       response.on('end', function () {
         var reply = JSON.parse(data);
-        console.info(reply);
+
         switch (reply['errors'] || null) {
           case null:
             console.info("#### Refresh Tokens");
@@ -318,9 +385,21 @@ module.exports = NodeHelper.create({
             break;
           default:
             //Refreshing error
-            console.info(reply.errors);
+            console.info("Error while refreshing tokens: ", reply.errors);
             self.access_token = null;
             self.refresh_token = null;
+
+            if (self.attemptAuthorization) {
+              console.log("Attempting to authorize");
+
+              // Remove Token file and try full authorization
+              fs.unlinkSync(tokenFilename);
+
+              setTimeout(function () {
+                self.initializeApi();
+              }, 1000);
+              return;
+            }
             break;
         }
       }.bind(self));
@@ -344,9 +423,9 @@ module.exports = NodeHelper.create({
     // Write the new codes to file
     var obj = { access_token: accessToken, refresh_token: refreshToken };
     var toWriteKeys = JSON.stringify(obj);
-    fs.writeFile(configFilename, toWriteKeys, function (err) {
+    fs.writeFile(tokenFilename, toWriteKeys, function (err) {
       if (err) throw err;
-      console.log('Saved!');
+      console.log('Saved tokens!');
     });
   },
 });
