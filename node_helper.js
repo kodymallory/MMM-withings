@@ -263,7 +263,7 @@ module.exports = NodeHelper.create({
     // Create server to process code
     var express = require('express');
     var app = express();
-    app.listen(48985);
+    app.listen(REDIRECT_PORT);
 
     app.get("/withings", function (req, resp) {
       resp.send(200);
