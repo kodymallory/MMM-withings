@@ -3,6 +3,16 @@ The `MMM-withings` module is an extension for [MagicMirror](https://github.com/M
 
 ![screenshot](screenshot.png)
 
+## Installation
+
+Stop your MagicMirror and clone the repository into the modules folder
+
+   ````bash
+   cd ~/MagicMirror/modules
+   git clone https://github.com/kodymallory/MMM-withings.git
+   cd ~/MagicMirror/modules/MMM-withings
+   npm install --production
+   ````
 ## Authorize app with Withings
 The module needs access to your Withings data in order to display it. The authorization is restricted to localhost. This feature can be disabled from config.js and an API key can be manually generated and used following [these instructions](#Setting-Up-API-Key-and-User-Account).
 
