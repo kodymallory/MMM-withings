@@ -14,7 +14,7 @@ Stop your MagicMirror and clone the repository into the modules folder
    npm install --production
    ````
 ## Authorize app with Withings
-The module needs access to your Withings data in order to display it. The authorization is restricted to localhost. This feature can be disabled from config.js and an API key can be manually generated and used following [these instructions](#Setting-Up-API-Key-and-User-Account).
+The module needs access to your Withings data in order to display it. The authorization is restricted to localhost. This feature can be disabled from config.js and an API key can be manually generated and used following [these instructions](#Manual-Authorization-by-Setting-Up-API-Key-and-User-Account).
 
 1. Ensure you have a registered Withings account
 2. Launch Magic Mirror with withings module included.
@@ -55,7 +55,8 @@ The following properties can be configured:
 | `clientSecret` | Consumer Secret from step 3<br><br> **Default value:** ``
 | `redirectUri` | Callback URL from step 3<br><br> **Default value:** ``
 
-## Setting Up API Key and User Account
+## Manual Authorization by Setting Up API Key and User Account
+**Note: This step is not needed if authorization was completed through** [these instructions](#Authorize-app-with-Withings)
 1. Have a withings account
 2. Navigate to [here](https://account.withings.com/partner/add_oauth2) to create an application (can be a fake application)
     1. Application Name: Can be anything
