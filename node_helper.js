@@ -112,13 +112,12 @@ module.exports = NodeHelper.create({
     var self = this;
     console.log("##### Starting node helper for: " + self.name);
 
-    self.baseApi = 'account.withings.com';
-    self.measurementApi = 'wbsapi.withings.net';
-    self.tokenPath = '/oauth2/token';
-    self.authorizationUri = self.baseApi + '/oauth2_user/authorize2';
+    self.baseApi = 'wbsapi.withings.net';
+    self.tokenPath = '/v2/oauth2';
+    self.authorizationUri = 'account.withings.com/oauth2_user/authorize2';
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
 
-    self.attemptAuthorization = true;
+    self.attemptAuthorization = false;
     self.clientId = CLIENT_ID;
     self.clientSecret = CLIENT_API_K;
     self.redirectUri = REDIRECT_URI;
@@ -159,18 +158,18 @@ module.exports = NodeHelper.create({
       });
       response.on('end', function () {
         var reply = JSON.parse(data);
-        console.info(reply);
-        switch (reply['errors'] || null) {
-          case null:
+        console.info("Reply from access token:", reply);
+        switch (reply.status) {
+          case 0:
             console.info("#### Got Tokens");
-            self.access_token = reply['access_token'];
-            self.refresh_token = reply['refresh_token'];
+            self.access_token = reply.body.access_token;
+            self.refresh_token = reply.body.refresh_token;
             this.updateTokenFile(self.access_token, self.refresh_token);
             this.sendSocketNotification("API_INITIALIZED");
             break;
           default:
             //Fetching tokens error
-            console.info(reply.errors);
+            console.info("Error while getting access_token: ", reply.status);
             self.access_token = null;
             self.refresh_token = null;
             setTimeout(function () {
@@ -181,10 +180,11 @@ module.exports = NodeHelper.create({
       }.bind(self));
     }.bind(self));
     request.write(Querystring.stringify({
+      'action': 'requesttoken',
       'grant_type': 'authorization_code',
-      'code': code,
       'client_id': self.clientId,
       'client_secret': self.clientSecret,
+      'code': code,
       'redirect_uri': self.redirectUri
     }));
     request.on('error', function (error) {
@@ -203,7 +203,7 @@ module.exports = NodeHelper.create({
     date.setDate(date.getDate() - updateRequest.daysOfHistory);
     var updateTimestamp = Math.floor(date.getTime() / 1000);
     var options = {
-      hostname: self.measurementApi,
+      hostname: self.baseApi,
       path: '/measure?' + Querystring.stringify({
         'action':'getmeas',
         'access_token': self.access_token,
@@ -242,7 +242,7 @@ module.exports = NodeHelper.create({
             break;
           case 401:
             console.info("Token Expired");
-            self.refresh();
+            self.refreshToken();
             break;
           default:
             console.error("Something Went Wrong ", reply);
@@ -359,7 +359,7 @@ module.exports = NodeHelper.create({
     }
   },
 
-  refresh: function () {
+  refreshToken: function () {
     var self = this;
     console.info("Refreshing tokens...");
     var options = {
@@ -376,16 +376,16 @@ module.exports = NodeHelper.create({
       response.on('end', function () {
         var reply = JSON.parse(data);
 
-        switch (reply['errors'] || null) {
-          case null:
-            console.info("#### Refresh Tokens");
+        switch (reply.status) {
+          case 0:
+            console.info("#### Got Refresh Tokens");
             self.access_token = reply['access_token'];
             self.refresh_token = reply['refresh_token'];
             this.updateTokenFile(self.access_token, self.refresh_token);
             break;
           default:
             //Refreshing error
-            console.info("Error while refreshing tokens: ", reply.errors);
+            console.info("Error while refreshing tokens: ", reply.status);
             self.access_token = null;
             self.refresh_token = null;
 
@@ -406,11 +406,11 @@ module.exports = NodeHelper.create({
     }.bind(self));
 
     request.write(Querystring.stringify({
+      'action': 'requesttoken',
       'grant_type': 'refresh_token',
       'refresh_token': self.refresh_token,
       'client_id': self.clientId,
-      'client_secret': self.clientSecret,
-      'redirect_uri': self.redirectUri
+      'client_secret': self.clientSecret
     }));
 
     request.on('error', function (error) {
