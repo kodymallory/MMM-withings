@@ -7,10 +7,10 @@ const filename = "/tokens.json";
 var tokenFilename = path.resolve(__dirname + filename);
 const KG_TO_LBS = 2.2046;
 
-const CLIENT_ID = "d8973ddc0d93a3b646724a04adddca246ef5c0a9018f963724125bd4747a972a";
-const CLIENT_API_K = "56b1d32e8ae199aabcda5fece5b982e89a8a6472f46ce035d230cfd28ba564d4";
-const REDIRECT_PORT = 48985;
-const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/withings`;
+// Default OAUTH2.0 values from Withings Documentation
+const CLIENT_ID = "7573fd4a4c421ddd102dac406dc6e0e0e22f683c4a5e81ff0a5caf8b65abed67";
+const CLIENT_API_K = "d9286311451fc6ed71b372a075c58c5058be158f56a77865e43ab3783255424f";
+const REDIRECT_URI = `https://www.withings.com`;
 
 const metricToImperialMap = {
   'kg': 'lbs',
@@ -116,7 +116,6 @@ module.exports = NodeHelper.create({
     self.authorizationUri = 'account.withings.com/oauth2_user/authorize2';
     self.scopes = ['user.info', 'user.metrics', 'user.activity'];
 
-    self.attemptAuthorization = false;
     self.clientId = CLIENT_ID;
     self.clientSecret = CLIENT_API_K;
     self.redirectUri = REDIRECT_URI;
@@ -259,36 +258,6 @@ module.exports = NodeHelper.create({
     request.end();
   },
 
-  getAuthorizationCode: function() {
-    var self = this;
-
-    // Create server to process code
-    var express = require('express');
-    var app = express();
-    app.listen(REDIRECT_PORT);
-
-    app.get("/withings", function (req, resp) {
-      resp.send(200);
-      self.getAccessToken(req.query.code);
-      app.close();
-    });
-
-    // Request code in the default browser.
-    (async () => {
-      const tokenUrl =
-        `https://${self.authorizationUri}?response_type=code&redirect_uri=${self.redirectUri}&scope=user.info,user.metrics,user.activity&state=1&client_id=${self.clientId}`;
-      console.log('URL ', tokenUrl);
-      await open(
-        tokenUrl,
-        {
-          wait: true
-        });
-    })()
-    .catch(err => {
-      console.log("Catch while getting authorization code: ", err);
-    });
-  },
-
   initializeApi: function(config) {
     var self = this;
 
@@ -303,9 +272,6 @@ module.exports = NodeHelper.create({
       if (config.redirectUri) {
         self.redirectUri = config.redirectUri;
       }
-      if (config.attemptAuthorization) {
-        self.attemptAuthorization = config.attemptAuthorization;
-      }
       self.units = config.units;
     }
 
@@ -314,9 +280,6 @@ module.exports = NodeHelper.create({
         if (err) {
           if (err.code === "ENOENT") {
             console.log(`Could not find tokens file: ${tokenFilename}`);
-            if (self.attemptAuthorization) {
-              self.getAuthorizationCode();
-            }
             return;
           }
           else {
@@ -390,18 +353,6 @@ module.exports = NodeHelper.create({
             console.info("Error while refreshing tokens: ", reply.status);
             self.access_token = null;
             self.refresh_token = null;
-
-            if (self.attemptAuthorization) {
-              console.log("Attempting to authorize");
-
-              // Remove Token file and try full authorization
-              fs.unlinkSync(tokenFilename);
-
-              setTimeout(function () {
-                self.initializeApi();
-              }, 1000);
-              return;
-            }
             break;
         }
       }.bind(self));
