@@ -77,7 +77,7 @@ E.g.
 ````url
 https://example.com/?state=1&code=deadbeefcafebabe12345789
 ````
-8. Copy the value for code into tokens.json in the following format
+8. Copy the value for code into tokens.json in the following format. You may need to create the file at ~/MagicMirror/modules/MMM-withings/tokens.json if it does not already exist
 ````json
 {
     "code":"deadbeefcafebabe12345789"
