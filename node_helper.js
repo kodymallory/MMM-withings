@@ -140,6 +140,16 @@ module.exports = NodeHelper.create({
     return value;
   },
 
+  getMeasurementUnit: function (meas) {
+    var self = this;
+    var unit = measInfo[measTypeMap[meas.type]].si_unit;
+    if (self.units == 'imperial')
+    {
+      unit = metricToImperialMap[unit];
+    }
+    return unit;
+  },
+
   getAccessToken: function (code) {
     var self = this;
     console.info("Generating Access tokens...");
@@ -234,7 +244,7 @@ module.exports = NodeHelper.create({
                   'type': measTypeMap[meas.type],
                   'measurement': self.convertData(meas),
                   'date': date,
-                  'unit': metricToImperialMap[measInfo[measTypeMap[meas.type]].si_unit]
+                  'unit': self.getMeasurementUnit(meas)
                 });
               });
             });
